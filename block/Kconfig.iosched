@@ -50,27 +50,13 @@ config CFQ_GROUP_IOSCHED
 	---help---
 	  Enable group IO scheduling in CFQ.
 
-config IOSCHED_BFQ
-	tristate "BFQ I/O scheduler"
-	default n
+config IOSCHED_FIOPS
+	tristate "IOPS based I/O scheduler"
+	default y
 	---help---
-	  The BFQ I/O scheduler tries to distribute bandwidth among
-	  all processes according to their weights.
-	  It aims at distributing the bandwidth as desired, independently of
-	  the disk parameters and with any workload. It also tries to
-	  guarantee low latency to interactive and soft real-time
-	  applications. If compiled built-in (saying Y here), BFQ can
-	  be configured to support hierarchical scheduling.
-
-config CGROUP_BFQIO
-	bool "BFQ hierarchical scheduling support"
-	depends on CGROUPS && IOSCHED_BFQ=y
-	default n
-	---help---
-	  Enable hierarchical scheduling in BFQ, using the cgroups
-	  filesystem interface.  The name of the subsystem will be
-	  bfqio.
-
+	  This is an IOPS based I/O scheduler. It will try to distribute
+          IOPS equally among all processes in the system. It's mainly for
+          Flash based storage.
 choice
 	prompt "Default I/O scheduler"
 	default DEFAULT_CFQ
@@ -94,6 +80,12 @@ choice
 		  any workload. It also tries to guarantee low latency to
 		  interactive and soft real-time applications.
 
+<<<<<<< HEAD
+=======
+	config DEFAULT_FIOPS
+		bool "FIOPS" if IOSCHED_FIOPS=y
+		
+>>>>>>> 1b28877... block: fiops ioscheduler core
 	config DEFAULT_NOOP
 		bool "No-op"
 
@@ -103,7 +95,11 @@ config DEFAULT_IOSCHED
 	string
 	default "deadline" if DEFAULT_DEADLINE
 	default "cfq" if DEFAULT_CFQ
+<<<<<<< HEAD
 	default "bfq" if DEFAULT_BFQ
+=======
+	default "fiops" if DEFAULT_FIOPS
+>>>>>>> 1b28877... block: fiops ioscheduler core
 	default "noop" if DEFAULT_NOOP
 
 endmenu
