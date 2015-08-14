@@ -21,11 +21,14 @@
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
+#include <linux/err.h>
 #include <linux/kernel.h>
-#include <linux/msm_tsens.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/platform_device.h>
+#include <linux/qpnp/qpnp-adc.h>
 #include <linux/slab.h>
 
-#define TSENS_SENSOR 0
 #define DEFAULT_SAMPLING_MS 3000
 
 enum thermal_state {
@@ -45,6 +48,8 @@ static struct delayed_work thermal_work;
 static struct workqueue_struct *thermal_wq;
 
 struct thermal_config {
+	struct qpnp_vadc_chip *vadc_dev;
+	enum qpnp_vadc_channels adc_chan;
 	unsigned int freq_high_KHz;
 	unsigned int freq_mid_KHz;
 	unsigned int freq_low_KHz;
@@ -75,17 +80,19 @@ static void update_online_cpu_policy(void)
 static void msm_thermal_main(struct work_struct *work)
 {
 	struct qpnp_vadc_result result;
-	enum thermal_state old_throttle;
+	struct throttle_policy *t;
+	unsigned int cpu, old_throttle;
+	bool throttle_logged = false;
 	int64_t temp;
 	int ret;
 
-	tsens_dev.sensor_num = TSENS_SENSOR;
-	ret = tsens_get_temp(&tsens_dev, &temp);
-	/* bound check */
-	if (ret || temp > 1000) {
-		pr_err("Unable to read tsens sensor #%d\n", tsens_dev.sensor_num);
+	ret = qpnp_vadc_read(t_conf->vadc_dev, t_conf->adc_chan, &result);
+	if (ret) {
+		pr_err("Unable to read ADC channel\n");
 		goto reschedule;
 	}
+
+	temp = result.physical;
 
 	get_online_cpus();
 	for_each_possible_cpu(cpu) {
@@ -129,10 +136,10 @@ static void msm_thermal_main(struct work_struct *work)
 		/* logging */
 		if ((t->cpu_throttle != old_throttle) && !throttle_logged) {
 			if (t->cpu_throttle)
-				pr_warn("Setting CPU to %uKHz! temp: %luC\n",
+				pr_warn("Setting CPU to %uKHz! temp: %lluC\n",
 							t->throttle_freq, temp);
 			else
-				pr_warn("CPU unthrottled! temp: %luC\n", temp);
+				pr_warn("CPU unthrottled! temp: %lluC\n", temp);
 			throttle_logged = true;
 		}
 
@@ -346,16 +353,10 @@ static struct attribute_group msm_thermal_attr_group = {
 };
 /*********************** SYSFS END ***********************/
 
-static int __init msm_thermal_init(void)
+static int msm_thermal_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
 	int ret;
-
-	t_pol = kzalloc(sizeof(struct throttle_policy), GFP_KERNEL);
-	if (!t_pol) {
-		pr_err("Failed to allocate thermal_policy struct\n");
-		ret = -ENOMEM;
-		goto err;
-	}
 
 	t_conf = kzalloc(sizeof(struct thermal_config), GFP_KERNEL);
 	if (!t_conf) {
@@ -378,8 +379,7 @@ static int __init msm_thermal_init(void)
 		goto err;
 	}
 
-	thermal_wq = alloc_workqueue("msm_thermal_wq",
-					WQ_HIGHPRI | WQ_NON_REENTRANT, 0);
+	thermal_wq = alloc_workqueue("msm_thermal_wq", WQ_HIGHPRI, 0);
 	if (!thermal_wq) {
 		pr_err("Failed to allocate workqueue\n");
 		ret = -EFAULT;
@@ -387,13 +387,6 @@ static int __init msm_thermal_init(void)
 	}
 
 	cpufreq_register_notifier(&cpu_throttle_nb, CPUFREQ_POLICY_NOTIFIER);
-
-	t_conf = kzalloc(sizeof(struct thermal_config), GFP_KERNEL);
-	if (!t_conf) {
-		pr_err("Failed to allocate thermal_config struct\n");
-		ret = -ENOMEM;
-		goto err;
-	}
 
 	t_conf->sampling_ms = DEFAULT_SAMPLING_MS;
 
@@ -414,4 +407,23 @@ static int __init msm_thermal_init(void)
 err:
 	return ret;
 }
-fs_initcall(msm_thermal_init);
+
+static struct of_device_id msm_thermal_match_table[] = {
+	{.compatible = "qcom,msm-thermal-simple"},
+	{ },
+};
+
+static struct platform_driver msm_thermal_device = {
+	.probe = msm_thermal_probe,
+	.driver = {
+		.name = "msm-thermal-simple",
+		.owner = THIS_MODULE,
+		.of_match_table = msm_thermal_match_table,
+	},
+};
+
+static int __init msm_thermal_init(void)
+{
+	return platform_driver_register(&msm_thermal_device);
+}
+late_initcall(msm_thermal_init);
