@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2014-2017, Sultanxda <sultanxda@gmail.com>
  *           (C) 2017, Joe Maples <joe@frap129.org>
- *           (C) 2017, Wang Han <416810799@qq.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
