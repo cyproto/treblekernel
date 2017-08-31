@@ -39,6 +39,9 @@
 #define INPUT_BOOST           (1U << 3)
 #define INPUT_REBOOST         (1U << 4)
 
+/* The duration in milliseconds for the wake boost */
+#define FB_BOOST_MS (2000)
+
 /*
  * "fb" = "framebuffer". This is the boost that occurs on framebuffer unblank,
  * AKA when the screen is turned on (wake boost). All online CPUs are boosted
