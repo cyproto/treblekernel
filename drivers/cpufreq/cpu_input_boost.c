@@ -245,7 +245,7 @@ static int do_cpu_boost(struct notifier_block *nb,
 	bool initd = !is_initd(current->comm);
 	bool ret;
 
-	if (action != CPUFREQ_ADJUST)
+	if (action != CPUFREQ_ADJUST || unlikely(initd))
 		return NOTIFY_OK;
 
 	if (initd) {
@@ -255,7 +255,7 @@ static int do_cpu_boost(struct notifier_block *nb,
 	state = get_boost_state(b);
 
 	/*
-	* Save policy->min that was set by user/system before boosting
+	* Save policy->min that was set by user/system before boosting.
 	*/
 	min_freq_boosted = policy->min;
 
