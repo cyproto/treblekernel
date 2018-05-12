@@ -384,6 +384,33 @@ static int fpc1020_alloc_input_dev(struct fpc1020_data *fpc1020)
 	return retval;
 }
 
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprint@2.1", 16)) {
+			pr_debug("fingerprint nice changed to %i\n", nice);
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
+static void fpc1020_suspend_resume(struct work_struct *work)
+{
+	struct fpc1020_data *fpc1020 =
+		container_of(work, typeof(*fpc1020), pm_work);
+
+	/* Escalate fingerprintd priority when screen is off */
+	if (!fpc1020->screen_on)
+		set_fingerprintd_nice(MIN_NICE);
+	else
+		set_fingerprintd_nice(0);
+}
+
 static int fb_notifier_callback(struct notifier_block *self,
 		unsigned long event, void *data)
 {
@@ -395,10 +422,10 @@ static int fb_notifier_callback(struct notifier_block *self,
 	if (evdata && evdata->data && event == FB_EVENT_BLANK && fpc1020) {
 		blank = evdata->data;
 		if (*blank == FB_BLANK_UNBLANK) {
-			pr_err("ScreenOn\n");
+			pr_debug("ScreenOn\n");
 			fpc1020->screen_on = 1;
 		} else if (*blank == FB_BLANK_POWERDOWN) {
-			pr_err("ScreenOff\n");
+			pr_debug("ScreenOff\n");
 			fpc1020->screen_on = 0;
 		}
 	}
