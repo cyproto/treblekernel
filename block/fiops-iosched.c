@@ -376,7 +376,7 @@ static void fiops_insert_request(struct request_queue *q, struct request *rq)
 static inline void fiops_schedule_dispatch(struct fiops_data *fiopsd)
 {
 	if (fiopsd->busy_queues)
-		kblockd_schedule_work(fiopsd->queue, &fiopsd->unplug_work);
+		kblockd_schedule_work(&fiopsd->unplug_work);
 }
 
 static void fiops_completed_request(struct request_queue *q, struct request *rq)
@@ -400,9 +400,7 @@ fiops_find_rq_fmerge(struct fiops_data *fiopsd, struct bio *bio)
 	cic = fiops_cic_lookup(fiopsd, tsk->io_context);
 
 	if (cic) {
-		sector_t sector = bio->bi_sector + bio_sectors(bio);
-
-		return elv_rb_find(&cic->sort_list, sector);
+		return elv_rb_find(&cic->sort_list, bio_end_sector(bio));
 	}
 
 	return NULL;
@@ -486,21 +484,22 @@ static void fiops_kick_queue(struct work_struct *work)
 	spin_unlock_irq(q->queue_lock);
 }
 
-static void *fiops_init_queue(struct request_queue *q)
+static void *fiops_init_queue(struct request_queue *q, struct elevator_type *e)
 {
 	struct fiops_data *fiopsd;
 
-	fiopsd = kzalloc_node(sizeof(*fiopsd), GFP_KERNEL, q->node);
+ 	fiopsd = kzalloc_node(sizeof(*fiopsd), GFP_KERNEL, q->node);
+
 	if (!fiopsd)
 		return NULL;
 
-	fiopsd->queue = q;
+ 	fiopsd->queue = q;
 
-	fiopsd->service_tree = FIOPS_RB_ROOT;
+ 	fiopsd->service_tree = FIOPS_RB_ROOT;
 
-	INIT_WORK(&fiopsd->unplug_work, fiops_kick_queue);
+ 	INIT_WORK(&fiopsd->unplug_work, fiops_kick_queue);
 
-	return fiopsd;
+ 	return fiopsd;
 }
 
 static void fiops_init_icq(struct io_cq *icq)
