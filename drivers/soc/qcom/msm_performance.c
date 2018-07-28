@@ -28,7 +28,7 @@
 
 static unsigned int use_input_evts_with_hi_slvt_detect;
 static struct mutex managed_cpus_lock;
-static int touchboost = 1;
+//static int touchboost = 0;
 
 /* Maximum number to clusters that this module will manage*/
 static unsigned int num_clusters;
@@ -431,7 +431,6 @@ static int set_cpu_min_freq(const char *buf, const struct kernel_param *kp)
 			cpumask_clear_cpu(j, limit_mask);
 	}
 	put_online_cpus();
-#endif
 
 #endif
 	return 0;
