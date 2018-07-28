@@ -1,1 +1,1 @@
-obj-$(CONFIG_LAZYPLUG)			  += lazyplug.o
+obj-$(CONFIG_LAZYPLUG)		+= lazyplug.o
