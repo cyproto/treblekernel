@@ -13976,7 +13976,10 @@ static int tasha_codec_probe(struct snd_soc_codec *codec)
 	int i, ret;
 	void *ptr = NULL;
 	struct regulator *supply;
-	soundcontrol.snd_control_codec = codec;
+	#ifdef CONFIG_SOUND_CONTROL
+	sound_control_codec_ptr = codec;
+	#endif
+
 	control = dev_get_drvdata(codec->dev->parent);
 
 	dev_info(codec->dev, "%s()\n", __func__);
