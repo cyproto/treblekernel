@@ -800,7 +800,7 @@ static bool is_otg_present(struct smbchg_chip *chip)
 	if (chip->schg_version == QPNP_SCHG_LITE)
 		return is_otg_present_schg_lite(chip);
 
-	return is_otg_present_schg(chip) || cclogic_get_otg_state();
+	return is_otg_present_schg(chip);
 }
 
 #define USBIN_9V			BIT(5)
@@ -8458,7 +8458,7 @@ static void rerun_hvdcp_det_if_necessary(struct smbchg_chip *chip)
 }
 /*
  * cclogic callback, notify cclogic event status: detached or attached
- */
+ 
  
 static int cclogic_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
 {
@@ -8478,6 +8478,7 @@ wake_up_interruptible(&chip->cclogic_wait_queue);
 
 	return 0;
 }
+*/
 static int smbchg_probe(struct spmi_device *spmi)
 {
 	int rc;
@@ -8728,13 +8729,6 @@ init_waitqueue_head(&chip->cclogic_wait_queue);
 	}
 	chip->psy_registered = true;
 	chip->allow_hvdcp3_detection = true;
-	
-chip->cclogic_notif.notifier_call = cclogic_notifier_callback;
-	rc = cclogic_register_client(&chip->cclogic_notif);
-	if (rc) {
-		pr_err("Unable to register cclogic_notifier : %d\n", rc);
-		goto unregister_dc_psy1;
-}
 
 	if (chip->cfg_chg_led_support &&
 			chip->schg_version == QPNP_SCHG_LITE) {
@@ -8784,8 +8778,6 @@ chip->cclogic_notif.notifier_call = cclogic_notifier_callback;
 unregister_led_class:
 	if (chip->cfg_chg_led_support && chip->schg_version == QPNP_SCHG_LITE)
 		led_classdev_unregister(&chip->led_cdev);
-unregister_dc_psy1:
-cclogic_unregister_client(&chip->cclogic_notif);
 unregister_dc_psy:
 	power_supply_unregister(&chip->dc_psy);
 unregister_batt_psy:
@@ -8819,9 +8811,7 @@ static int smbchg_remove(struct spmi_device *spmi)
 	struct smbchg_chip *chip = dev_get_drvdata(&spmi->dev);
 
 	debugfs_remove_recursive(chip->debug_root);
-	
-    cclogic_unregister_client(&chip->cclogic_notif);
-    
+
 	if (chip->dc_psy_type != -EINVAL)
 		power_supply_unregister(&chip->dc_psy);
 

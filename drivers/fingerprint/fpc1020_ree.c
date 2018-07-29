@@ -215,7 +215,6 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *_fpc1020)
 	pr_debug("fpc1020 IRQ interrupt\n");
 	smp_rmb();
 	if (fpc1020->screen_on == 0) {
-		state_boost();
 		pm_wakeup_event(fpc1020->dev, 5000);
 	}
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
