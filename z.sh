@@ -1,4 +1,4 @@
-export CROSS_COMPILE="/home/cyproto21/kernel/linaro-7.3/bin/aarch64-linux-gnu-"
+export CROSS_COMPILE="/home/cyproto1/kernel/linaro-7.3/bin/aarch64-linux-gnu-"
 export ARCH=arm64 && export SUBARCH=arm64
 export KBUILD_BUILD_HOST="yash"
 export KBUILD_BUILD_USER="cyproto"
